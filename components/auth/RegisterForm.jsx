@@ -19,6 +19,7 @@ export default function RegisterForm() {
     name: "",
     email: "",
     password: "",
+    organizationName: "",
   });
 
   const handleChange = (e) => {
@@ -32,10 +33,9 @@ export default function RegisterForm() {
     setError("");
     try {
       const res = await api.post("/auth/register", formData);
-      console.log(res, "res");
       const { user } = res.data.data;
-      console.log(user);
       useAuthStore.getState().setUser(user);
+      router.push("/dashboard");
     } catch (err) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -104,6 +104,23 @@ export default function RegisterForm() {
             className="h-9 text-[13px] border-slate-200 focus:border-blue-500 bg-white"
           />
         </div>
+
+        <Label
+          htmlFor="organizationName"
+          className="text-[12px] font-medium text-slate-600"
+        >
+          Organization Name
+        </Label>
+        <Input
+          id="organizationName"
+          name="organizationName"
+          type="text"
+          placeholder="Atlastin"
+          value={formData.organizationName}
+          onChange={handleChange}
+          required
+          className="h-9 text-[13px] border-slate-200 focus:border-blue-500 bg-white"
+        />
 
         <div className="space-y-1.5">
           <Label

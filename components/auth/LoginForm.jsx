@@ -28,11 +28,9 @@ export default function LoginForm() {
     setError("");
     try {
       const res = await api.post("/auth/login", formData);
-      console.log(res, "res");
       const { user } = res.data;
-      console.log(user);
       useAuthStore.getState().setUser(user);
-      // router.push("/dashboard");
+      router.push("/dashboard");
     } catch (err) {
       setError(err.message || "Invalid email or password");
     } finally {
