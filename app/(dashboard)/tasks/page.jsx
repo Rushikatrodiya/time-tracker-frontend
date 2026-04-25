@@ -35,6 +35,7 @@ export default function TasksPage() {
     getSubTasksForTask,
     invalidateTaskTimelogs,
     fetchTimelogsForTask,
+    refreshTaskTimelogs,
   } = useTimelogs(tasksData);
 
   const { handleStartTimer, handleStopTimer, isPending } = useTimerMutations(
@@ -50,7 +51,11 @@ export default function TasksPage() {
     handleUpdateTimeLog,
     handleDeleteTimeLog,
     handleFieldChange,
-  } = useTimeLogActions(invalidateTaskTimelogs, refetchDurations);
+  } = useTimeLogActions(
+    invalidateTaskTimelogs,
+    refetchDurations,
+    refreshTaskTimelogs,
+  );
 
   if (isLoading) return <div>Loading...</div>;
 

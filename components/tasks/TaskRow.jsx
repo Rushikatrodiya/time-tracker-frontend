@@ -28,7 +28,7 @@ export default function TaskRow({
   const isOtherActive = hasActiveTimer && !isActive;
   const duration = durations[String(task.id)] || 0;
   const taskDate = task.created_at || task.createdAt || task.date || new Date();
-
+  console.log(subTasks, "subtasks");
   return (
     <>
       <tr className="border-b border-slate-100 hover:bg-slate-50">
@@ -87,15 +87,17 @@ export default function TaskRow({
       </tr>
 
       {isExpanded &&
-        subTasks?.map((timelog) => (
-          <TimeLogRow
-            key={timelog.id}
-            timelog={timelog}
-            taskId={task.id}
-            onEdit={onEditTimeLog}
-            onDelete={onDeleteTimeLog}
-          />
-        ))}
+        subTasks?.map((timelog) => {
+          return (
+            <TimeLogRow
+              key={timelog.id}
+              timelog={timelog}
+              taskId={task.id}
+              onEdit={onEditTimeLog}
+              onDelete={onDeleteTimeLog}
+            />
+          );
+        })}
     </>
   );
 }

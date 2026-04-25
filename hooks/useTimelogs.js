@@ -58,6 +58,7 @@ export const useTimelogs = (tasksData) => {
   // Builds the subtask rows from cached timelogs data
   const getSubTasksForTask = (taskId) => {
     const logs = timelogsData[taskId];
+    const task = tasksData?.find((t) => t.id === taskId);
 
     if (!logs || logs.length === 0) {
       return [
@@ -71,10 +72,11 @@ export const useTimelogs = (tasksData) => {
         },
       ];
     }
+    console.log(logs, "logs", task);
 
     return logs.map((log, index) => ({
       id: log.id,
-      title: `Time session ${index + 1}`,
+      title: log.title || task?.title,
       startTime: log.startTime || "--",
       endTime: log.endTime || "--",
       originalStartTime: log.startTime,
@@ -83,6 +85,9 @@ export const useTimelogs = (tasksData) => {
       isEmpty: false,
     }));
   };
+  const refreshTaskTimelogs = async (taskId) => {
+    await fetchTimelogsForTask(taskId);
+  };
 
   return {
     expandedRows,
@@ -90,5 +95,6 @@ export const useTimelogs = (tasksData) => {
     getSubTasksForTask,
     invalidateTaskTimelogs,
     fetchTimelogsForTask,
+    refreshTaskTimelogs,
   };
 };

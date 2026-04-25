@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function EditTimeLogModal({
   open,
@@ -28,6 +29,17 @@ export default function EditTimeLogModal({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={editingTimeLog.description || ""}
+              onChange={(e) => onFieldChange("description", e.target.value)}
+              className="text-[13px] resize-none"
+              rows={3}
+              placeholder="Enter description..."
+            />
+          </div>
           <div className="grid gap-2">
             <Label htmlFor="startTime">Start Time</Label>
             <Input

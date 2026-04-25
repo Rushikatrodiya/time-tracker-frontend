@@ -3,7 +3,11 @@ import api from "../lib/api";
 import { parseToLocalInput } from "../utils/parseDateTime";
 import { useCreateEntity } from "./useCreateEntity";
 
-export const useTimeLogActions = (invalidateTaskTimelogs, refetchDurations) => {
+export const useTimeLogActions = (
+  invalidateTaskTimelogs,
+  refetchDurations,
+  refreshTaskTimelogs,
+) => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedTimeLog, setSelectedTimeLog] = useState(null);
   const [editingTimeLog, setEditingTimeLog] = useState({});
@@ -14,6 +18,7 @@ export const useTimeLogActions = (invalidateTaskTimelogs, refetchDurations) => {
         taskId: data.taskId,
         startTime: data.startTime,
         endTime: data.endTime,
+        title: data.description,
       }),
     ["timelogs"],
   );
@@ -23,11 +28,12 @@ export const useTimeLogActions = (invalidateTaskTimelogs, refetchDurations) => {
     ["timelogs"],
   );
 
-  const handleEditTimeLog = (timeLog, taskId) => {
+  const handleEditTimeLog = (timeLog, taskId, taskTitle) => {
     setSelectedTimeLog({ ...timeLog, taskId });
     setEditingTimeLog({
       startTime: parseToLocalInput(timeLog.originalStartTime),
       endTime: parseToLocalInput(timeLog.originalEndTime),
+      description: timeLog.description || taskTitle || "",
     });
     setEditModalOpen(true);
   };
@@ -37,6 +43,7 @@ export const useTimeLogActions = (invalidateTaskTimelogs, refetchDurations) => {
       taskId: selectedTimeLog.taskId,
       startTime: new Date(editingTimeLog.startTime).toISOString(),
       endTime: new Date(editingTimeLog.endTime).toISOString(),
+      description: editingTimeLog.description,
     };
 
     updateTimeLogMutation.mutate(
@@ -46,6 +53,8 @@ export const useTimeLogActions = (invalidateTaskTimelogs, refetchDurations) => {
           setEditModalOpen(false);
           setSelectedTimeLog(null);
           setEditingTimeLog({});
+          refetchDurations();
+          refreshTaskTimelogs(selectedTimeLog.taskId);
         },
       },
     );
