@@ -1,25 +1,52 @@
 import { NextResponse } from "next/server";
 
+function decodeToken(token) {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+
+    return JSON.parse(Buffer.from(base64, "base64").toString("utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+function isExpired(token) {
+  const payload = decodeToken(token);
+  if (!payload || !payload.exp) return true;
+
+  return payload.exp * 1000 < Date.now();
+}
+
 export function middleware(request) {
-  const accessToken = request.cookies.get("accessToken")?.value;
-  const refreshToken = request.cookies.get("refreshToken")?.value;
+  const token = request.cookies.get("accessToken")?.value;
+  const { pathname } = request.nextUrl;
+
   const isAuthPage =
-    request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/register");
+    pathname.startsWith("/login") || pathname.startsWith("/register");
 
-  // console.log(accessToken, "accessToken", refreshToken);
-
-  if (!accessToken && !refreshToken && !isAuthPage) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (!token || isExpired(token)) {
+    if (!isAuthPage) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.next();
   }
 
-  // if (accessToken && isAuthPage) {
-  //   return NextResponse.redirect(new URL("/dashboard", request.nextUrl.origin));
-  // }
+  if (isAuthPage) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  const payload = decodeToken(token);
+
+  if (pathname.startsWith("/my-team")) {
+    if (payload?.role !== "ADMIN" && payload?.role !== "MANAGER") {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+  }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
