@@ -72,7 +72,6 @@ export const useTimelogs = (tasksData) => {
         },
       ];
     }
-    console.log(logs, "logs", task);
 
     return logs.map((log, index) => ({
       id: log.id,

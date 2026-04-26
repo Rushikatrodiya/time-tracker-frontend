@@ -28,7 +28,6 @@ export default function TaskRow({
   const isOtherActive = hasActiveTimer && !isActive;
   const duration = durations[String(task.id)] || 0;
   const taskDate = task.created_at || task.createdAt || task.date || new Date();
-  console.log(subTasks, "subtasks");
   return (
     <>
       <tr className="border-b border-slate-100 hover:bg-slate-50">
