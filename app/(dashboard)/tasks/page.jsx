@@ -12,6 +12,7 @@ import { useTaskTimers } from "../../../hooks/useTaskTimers";
 import { useTimeLogActions } from "../../../hooks/useTimeLogActions";
 import { useTimelogs } from "../../../hooks/useTimelogs";
 import { useTimerMutations } from "../../../hooks/useTimerMutations";
+import { useUpdateTask } from "../../../hooks/useUpdateTask";
 import api from "../../../lib/api";
 
 export default function TasksPage() {
@@ -42,6 +43,20 @@ export default function TasksPage() {
     refetchDurations,
     fetchTimelogsForTask,
   );
+
+  const updateTask = useUpdateTask();
+
+  const handleStatusUpdate = (taskId, newStatus) => {
+    updateTask.mutate({ taskId, status: newStatus });
+  };
+
+  const handlePriorityUpdate = (taskId, newPriority) => {
+    updateTask.mutate({ taskId, priority: newPriority });
+  };
+
+  const handleTitleUpdate = (taskId, newTitle) => {
+    updateTask.mutate({ taskId, title: newTitle });
+  };
 
   const {
     editModalOpen,
@@ -158,6 +173,9 @@ export default function TasksPage() {
                     onStopTimer={handleStopTimer}
                     onEditTimeLog={handleEditTimeLog}
                     onDeleteTimeLog={handleDeleteTimeLog}
+                    onStatusUpdate={handleStatusUpdate}
+                    onPriorityUpdate={handlePriorityUpdate}
+                    onTitleUpdate={handleTitleUpdate}
                   />
                 ))}
               </tbody>
