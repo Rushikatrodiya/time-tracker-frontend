@@ -7,19 +7,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Calendar,
-  FolderKanban,
-  MoreHorizontal,
-  Plus,
-  Users,
-} from "lucide-react";
+import { FolderKanban, MoreHorizontal, Plus, Users } from "lucide-react";
+import Link from "next/link";
 import CreateProjectModal from "../../../components/dashboard/CreateProjectModal";
 import Navbar from "../../../components/dashboard/Navbar";
 import StatCard from "../../../components/dashboard/StateCard";
 import useQueryHook from "../../../hooks/useQuery";
 import api from "../../../lib/api";
 import { useAuthStore } from "../../../store/authStore";
+import {
+  getProjectHealth,
+  getStatusVariant,
+} from "../../../utils/projectHelpers";
 
 export default function ProjectsPage() {
   const user = useAuthStore((state) => state.user);
@@ -35,21 +34,6 @@ export default function ProjectsPage() {
   if (projectsLoading) {
     return <div>Loading...</div>;
   }
-
-  const getStatusVariant = (status) => {
-    switch (status?.toLowerCase()) {
-      case "active":
-        return "bg-green-50 text-green-600 border-green-200";
-      case "completed":
-        return "bg-blue-50 text-blue-600 border-blue-200";
-      case "on-hold":
-        return "bg-yellow-50 text-yellow-600 border-yellow-200";
-      case "cancelled":
-        return "bg-red-50 text-red-600 border-red-200";
-      default:
-        return "bg-slate-50 text-slate-600 border-slate-200";
-    }
-  };
 
   return (
     <>
@@ -76,18 +60,21 @@ export default function ProjectsPage() {
             sub={`${projectsData?.length || 0} projects`}
           />
           <StatCard
-            label="Active"
+            label="Team Members"
+            value={
+              projectsData?.reduce(
+                (total, project) => total + (project.memberCount || 0),
+                0,
+              ) || 0
+            }
+            sub="Across all projects"
+          />
+          <StatCard
+            label="Active Projects"
             value={
               projectsData?.filter((p) => p.status === "ACTIVE")?.length || 0
             }
-            sub="Currently active"
-          />
-          <StatCard
-            label="Completed"
-            value={
-              projectsData?.filter((p) => p.status === "ARCHIVED")?.length || 0
-            }
-            sub="Finished projects"
+            sub="Currently running"
           />
         </div>
 
@@ -121,25 +108,30 @@ export default function ProjectsPage() {
                         >
                           {project.status || "Active"}
                         </Badge>
+                        <div
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full ${getProjectHealth(project).bgColor}`}
+                        >
+                          {(() => {
+                            const HealthIcon = getProjectHealth(project).icon;
+                            return (
+                              <HealthIcon
+                                className={`w-3 h-3 ${getProjectHealth(project).color}`}
+                              />
+                            );
+                          })()}
+                          <span
+                            className={`text-[10px] font-medium ${getProjectHealth(project).color}`}
+                          >
+                            {getProjectHealth(project).label}
+                          </span>
+                        </div>
                       </div>
                       <p className="text-[12px] text-slate-500 mb-3 line-clamp-2">
                         {project.description || "No description provided"}
                       </p>
-                      <div className="flex items-center gap-4 text-[11px] text-slate-400">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          <span>
-                            {project.startDate
-                              ? new Date(project.startDate).toLocaleDateString()
-                              : "No start date"}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          <span>
-                            {project.assignedUsers?.length || 0} members
-                          </span>
-                        </div>
+                      <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                        <Users className="w-3 h-3" />
+                        {project.memberCount || 0} members
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -154,11 +146,14 @@ export default function ProjectsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit Project</DropdownMenuItem>
-                          <DropdownMenuItem>Manage Team</DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">
-                            Delete Project
+                          <DropdownMenuItem>
+                            <Link
+                              href={`/projects/${project.id}/team`}
+                              className="flex items-center gap-2"
+                            >
+                              <Users className="w-4 h-4" />
+                              Manage Team
+                            </Link>
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
