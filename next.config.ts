@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: "/api/:path*",
+        source: "/backend/:path*",
         destination: "https://time-tracker-backend-q90p.onrender.com/:path*",
       },
     ];
