@@ -20,6 +20,7 @@ function isExpired(token) {
 
 export function middleware(request) {
   const token = request.cookies.get("accessToken")?.value;
+  console.log("Middleware token:", token ? `${token}` : "missing");
   const { pathname } = request.nextUrl;
 
   const isAuthPage =

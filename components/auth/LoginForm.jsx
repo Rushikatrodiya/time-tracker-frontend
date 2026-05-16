@@ -25,13 +25,16 @@ export default function LoginForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setError("");
     try {
       const res = await api.post("/auth/login", formData);
+      console.log("Login response:", res.data);
+      console.log("Cookies:", document.cookie);
+
       const { user } = res.data;
       useAuthStore.getState().setUser(user);
       router.push("/dashboard");
     } catch (err) {
+      console.log("Error:", err.response?.data);
       setError(err.message || "Invalid email or password");
     } finally {
       setIsLoading(false);
