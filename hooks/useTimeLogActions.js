@@ -20,12 +20,12 @@ export const useTimeLogActions = (
         endTime: data.endTime,
         title: data.description,
       }),
-    ["timelogs"],
+    [["timelogs"], ["team", "summary"], ["team", "overview"]],
   );
 
   const deleteTimeLogMutation = useCreateEntity(
     (data) => api.delete(`/timelogs/${data.timeLogId}`),
-    ["timelogs"],
+    [["timelogs"], ["team", "summary"], ["team", "overview"]],
   );
 
   const handleEditTimeLog = (timeLog, taskId, taskTitle) => {

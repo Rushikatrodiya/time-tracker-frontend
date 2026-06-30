@@ -7,7 +7,15 @@ export default function MemberList({
   onRemove,
   isRemoving,
   compact = false,
+  currentUser,
 }) {
+  const canRemoveMember = (member, currentUser) => {
+    if (!currentUser || !member) return false;
+    if (member.user?.id === currentUser.id) return false;
+    if (currentUser.role === "ADMIN") return true;
+    if (currentUser.role === "MANAGER" && member.user?.role === "USER") return true;
+    return false;
+  };
   const MemberListSkeleton = () => (
     <div className="space-y-3">
       {[1, 2, 3].map((i) => (
@@ -86,25 +94,27 @@ export default function MemberList({
               <span className="text-xs px-2 py-1 border border-slate-200 rounded-md">
                 {member.user?.role}
               </span>
-              <button
-                onClick={() => onRemove(member)}
-                disabled={isRemoving}
-                className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded disabled:opacity-50"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              {canRemoveMember(member, currentUser) && (
+                <button
+                  onClick={() => onRemove(member)}
+                  disabled={isRemoving}
+                  className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded disabled:opacity-50"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -137,6 +147,7 @@ export default function MemberList({
               member={member}
               onRemove={() => onRemove(member)}
               isRemoving={isRemoving}
+              currentUser={currentUser}
             />
           ))}
         </div>

@@ -1,26 +1,18 @@
 import api from "../lib/api";
 import useQueryHook from "./useQuery";
-
-export const useTeamSummary = () => {
-  return useQueryHook({
-    key: ["team-summary"],
-    fn: () => api.get("/team/summary"),
-    select: (res) => res.data.data,
-  });
-};
-
-export const useTeamOverview = () => {
-  return useQueryHook({
-    key: ["team-overview"],
-    fn: () => api.get("/team/overview"),
-    select: (res) => res.data.data,
-  });
-};
-
 export const useProjectMembers = (projectId) => {
   return useQueryHook({
     key: ["project-members", projectId],
-    fn: () => api.get(`/project-members/${projectId}/members`),
+    fn: () => api.get(`/project-members/${projectId}`),
+    enabled: !!projectId,
+    select: (res) => res.data.data,
+  });
+};
+
+export const useFilteredProjectMembers = (projectId) => {
+  return useQueryHook({
+    key: ["filtered-project-members", projectId],
+    fn: () => api.get(`/project-members/${projectId}/filtered`),
     enabled: !!projectId,
     select: (res) => res.data.data,
   });

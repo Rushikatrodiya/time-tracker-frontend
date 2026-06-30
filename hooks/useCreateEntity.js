@@ -6,7 +6,14 @@ export const useCreateEntity = (apiFn, queryKey) => {
   return useMutation({
     mutationFn: apiFn,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
+      if (!queryKey) return;
+      if (Array.isArray(queryKey[0])) {
+        queryKey.forEach((key) => {
+          queryClient.invalidateQueries({ queryKey: key });
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey });
+      }
     },
   });
 };
