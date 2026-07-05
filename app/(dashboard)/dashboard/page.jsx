@@ -5,7 +5,7 @@ import StatCard from "../../../components/dashboard/StateCard";
 import useQueryHook from "../../../hooks/useQuery";
 import api from "../../../lib/api";
 import { useAuthStore } from "../../../store/authStore";
-import { formatTime  } from "../../../utils/formatTime";
+import { formatTime } from "../../../utils/formatTime";
 import { getInitials } from "../../../utils/avatarHelpers";
 
 export default function DashboardPage() {
@@ -37,7 +37,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className={`grid gap-3 mb-6 grid-cols-4`}>
           {isTeam ? (
             <>
               <StatCard
@@ -49,6 +49,11 @@ export default function DashboardPage() {
                 label="Hours Today"
                 value={formatTime(dashboard?.stats.hoursToday || 0)}
                 sub={dashboard?.stats.runningTimers > 0 ? `${dashboard?.stats.runningTimers} timers still running` : "combined across team"}
+              />
+              <StatCard
+                label="Hours This Month"
+                value={formatTime(dashboard?.stats.hoursThisMonth || 0)}
+                sub="combined across team"
               />
               <StatCard
                 label="Team Members"
@@ -66,6 +71,11 @@ export default function DashboardPage() {
               <StatCard
                 label="Hours Today"
                 value={formatTime(dashboard?.stats.hoursToday || 0)}
+                sub="my logged hours"
+              />
+              <StatCard
+                label="Hours This Month"
+                value={formatTime(dashboard?.stats.hoursThisMonth || 0)}
                 sub="my logged hours"
               />
               <StatCard
@@ -163,11 +173,10 @@ export default function DashboardPage() {
                               </p>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                                task.status === "DONE" ? "bg-green-100 text-green-700" :
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${task.status === "DONE" ? "bg-green-100 text-green-700" :
                                 task.status === "IN_PROGRESS" ? "bg-blue-100 text-blue-700" :
-                                "bg-slate-100 text-slate-500"
-                              }`}>
+                                  "bg-slate-100 text-slate-500"
+                                }`}>
                                 {task.status}
                               </span>
                               <span className="text-[11px] text-slate-400">{formatTime(task.hoursLogged)}</span>

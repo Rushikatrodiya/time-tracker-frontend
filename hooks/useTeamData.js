@@ -9,11 +9,11 @@ export const useProjectMembers = (projectId) => {
   });
 };
 
-export const useFilteredProjectMembers = (projectId) => {
+export const useFilteredProjectMembers = (projectId, enabled = true) => {
   return useQueryHook({
     key: ["filtered-project-members", projectId],
     fn: () => api.get(`/project-members/${projectId}/filtered`),
-    enabled: !!projectId,
+    enabled: !!projectId && enabled,
     select: (res) => res.data.data,
   });
 };

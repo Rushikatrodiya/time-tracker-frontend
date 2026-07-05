@@ -57,6 +57,9 @@ export default function CreateTaskPage() {
     }));
   };
 
+  const selectedProject = projectsData?.find((p) => p.id == formData.projectId);
+  const isArchived = selectedProject?.status === "ARCHIVED";
+
   const handleUserToggle = (assignedToIds, checked) => {
     setFormData((prev) => ({
       ...prev,
@@ -82,7 +85,7 @@ export default function CreateTaskPage() {
         formData.assignedToIds.length > 0 ? formData.assignedToIds : [user.id],
     };
     mutation.mutate(dataToSubmit, {
-      onSuccess: () => router.push("/tasks"),
+      onSuccess: () => router.push(`/tasks/${formData.projectId}`),
     });
   };
 
@@ -288,13 +291,18 @@ export default function CreateTaskPage() {
                   Cancel
                 </Button>
               </Link>
-              <Button
-                type="submit"
-                disabled={mutation.isPending}
-                className="min-w-30"
+              <div
+                title={isArchived ? "Cannot create tasks in an archived project" : ""}
+                className={isArchived ? "cursor-not-allowed" : ""}
               >
-                {mutation.isPending ? "Creating..." : "Create Task"}
-              </Button>
+                <Button
+                  type="submit"
+                  disabled={mutation.isPending || isArchived}
+                  className={`min-w-30 ${isArchived ? "pointer-events-none" : ""}`}
+                >
+                  {mutation.isPending ? "Creating..." : "Create Task"}
+                </Button>
+              </div>
             </div>
           </form>
         </div>

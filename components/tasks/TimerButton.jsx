@@ -8,6 +8,7 @@ export const TimerButton = ({
   isOtherTimerActive,
   onStart,
   onStop,
+  isArchived,
 }) => {
   const handleClick = (e) => {
     if (isActive) {
@@ -31,8 +32,8 @@ export const TimerButton = ({
             : "hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"
       }`}
       onClick={handleClick}
-      disabled={isPending || isOtherTimerActive}
-      title={isOtherTimerActive ? "Only one timer can run at a time" : ""}
+      disabled={isPending || isOtherTimerActive || isArchived}
+      title={isArchived ? "Cannot track time in an archived project" : isOtherTimerActive ? "Only one timer can run at a time" : ""}
     >
       {isActive ? (
         <>

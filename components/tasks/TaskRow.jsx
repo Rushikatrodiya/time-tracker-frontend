@@ -32,6 +32,8 @@ export default function TaskRow({
   onTitleUpdate,
   onDeleteTask,
   userRole,
+  currentUser,
+  isArchived,
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
@@ -50,6 +52,7 @@ export default function TaskRow({
   }, [isEditing]);
 
   const handleEditClick = () => {
+    if (isArchived) return;
     setIsEditing(true);
     setEditTitle(task.title);
   };
@@ -111,13 +114,19 @@ export default function TaskRow({
                   {(task.project?.projectKey || task.ticketNumber) && " "}
                   {task.title}
                 </span>
-                <Edit
-                  className="w-3 h-3 text-slate-400 cursor-pointer hover:text-slate-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditClick();
-                  }}
-                />
+                {isArchived ? (
+                  <div title="Cannot edit tasks in an archived project">
+                    <Edit className="w-3 h-3 text-slate-400 opacity-50 cursor-not-allowed" />
+                  </div>
+                ) : (
+                  <Edit
+                    className="w-3 h-3 text-slate-400 cursor-pointer hover:text-slate-600"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditClick();
+                    }}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -135,7 +144,7 @@ export default function TaskRow({
             <span className="text-slate-400 italic">-</span>
           )}
         </td>
-        {userRole === "ADMIN" && (
+        {userRole !== "USER" && (
           <>
             <td className="p-4 text-[13px] text-slate-700">
               {task.assignments?.[0]?.user?.name ? (
@@ -153,37 +162,42 @@ export default function TaskRow({
         )}
 
         <td>
-          <Select
-            value={task.status}
-            onValueChange={(newStatus) => onStatusUpdate(task.id, newStatus)}
-          >
-            <SelectTrigger className="w-32 text-[13px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="TODO">To Do</SelectItem>
-              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-              <SelectItem value="DONE">Completed</SelectItem>
-            </SelectContent>
-          </Select>
+          <div title={isArchived ? "Cannot change status in an archived project" : ""}>
+            <Select
+              value={task.status}
+              onValueChange={(newStatus) => onStatusUpdate(task.id, newStatus)}
+              disabled={isArchived}
+            >
+              <SelectTrigger className="w-32 text-[13px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="TODO">To Do</SelectItem>
+                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                <SelectItem value="DONE">Completed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </td>
 
         <td>
-          <BadgeDropdown
-            value={task.priority}
-            onChange={(newPriority) =>
-              onPriorityUpdate(task.id, Number(newPriority))
-            }
-            disabled={false}
-            size="sm"
-            options={[
-              { value: 1, label: "High" },
-              { value: 2, label: "Medium" },
-              { value: 3, label: "Low" },
-            ]}
-            getVariant={getPriorityVariant}
-            getLabel={taskPriorityLabel}
-          />
+          <div title={isArchived ? "Cannot change priority in an archived project" : ""}>
+            <BadgeDropdown
+              value={task.priority}
+              onChange={(newPriority) =>
+                onPriorityUpdate(task.id, Number(newPriority))
+              }
+              disabled={isArchived}
+              size="sm"
+              options={[
+                { value: 1, label: "High" },
+                { value: 2, label: "Medium" },
+                { value: 3, label: "Low" },
+              ]}
+              getVariant={getPriorityVariant}
+              getLabel={taskPriorityLabel}
+            />
+          </div>
         </td>
 
         <td className="p-4 text-[13px] text-slate-700">
@@ -196,32 +210,54 @@ export default function TaskRow({
           </span>
         </td>
 
-        {userRole !== "ADMIN" ? (
-          <td className="p-4">
-            <TimerButton
-              taskId={task.id}
-              isActive={isActive}
-              isPending={isPending}
-              isOtherTimerActive={isOtherActive}
-              onStart={onStartTimer}
-              onStop={onStopTimer}
-            />
-          </td>
-        ) : null}
+        {(() => {
+          const isAssignedToMe = task.assignments?.some(
+            (a) => a.userId === currentUser?.id || a.user?.id === currentUser?.id
+          );
 
-        {userRole === "ADMIN" ? (
-          <td className="p-4">
-            <Trash2
-              className="w-4 h-4 text-slate-400 cursor-pointer hover:text-red-600"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteTask(task);
-              }}
-            />
-          </td>
-        ) : (
-          <td className="p-4"></td>
-        )}
+          const showTimerButton = (userRole === "USER" || (userRole === "MANAGER" && isAssignedToMe));
+          const showDeleteButton = (userRole === "ADMIN" || (userRole === "MANAGER" && !isAssignedToMe));
+
+          return (
+            <>
+              {userRole !== "ADMIN" && (
+                <td className="p-4">
+                  {showTimerButton ? (
+                    <TimerButton
+                      taskId={task.id}
+                      isActive={isActive}
+                      isPending={isPending}
+                      isOtherTimerActive={isOtherActive}
+                      onStart={onStartTimer}
+                      onStop={onStopTimer}
+                      isArchived={isArchived}
+                    />
+                  ) : (
+                    <span className="text-slate-400">-</span>
+                  )}
+                </td>
+              )}
+
+              <td className="p-4">
+                {showDeleteButton && (
+                  isArchived ? (
+                    <div title="Cannot delete tasks in an archived project">
+                      <Trash2 className="w-4 h-4 text-slate-400 opacity-50 cursor-not-allowed" />
+                    </div>
+                  ) : (
+                    <Trash2
+                      className="w-4 h-4 text-slate-400 cursor-pointer hover:text-red-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteTask(task);
+                      }}
+                    />
+                  )
+                )}
+              </td>
+            </>
+          );
+        })()}
       </tr>
 
       {isExpanded &&
@@ -234,6 +270,7 @@ export default function TaskRow({
               onEdit={onEditTimeLog}
               onDelete={onDeleteTimeLog}
               userRole={userRole}
+              isArchived={isArchived}
             />
           );
         })}

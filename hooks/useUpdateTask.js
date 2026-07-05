@@ -20,6 +20,7 @@ export function useUpdateTask() {
         queryClient.invalidateQueries({ queryKey: ["tasks", taskId] });
       }
       queryClient.invalidateQueries({ queryKey: ["team", "overview"] });
+      queryClient.invalidateQueries({ queryKey: ["taskStats"] });
     },
     onError: (error) => {
       console.error("Failed to update task:", error);

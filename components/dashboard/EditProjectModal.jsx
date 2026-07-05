@@ -11,20 +11,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "@/lib/api";
+import { useUpdateProject } from "@/hooks/useProjects";
 import { useEffect, useState } from "react";
 
 export default function EditProjectModal({ project, open, onOpenChange }) {
-  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({});
 
-  const mutation = useMutation({
-    mutationFn: (data) => api.put(`/projects/${project.id}`, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
-      onOpenChange(false);
-    },
+  const mutation = useUpdateProject(() => {
+    onOpenChange(false);
   });
 
   // Pre-fill form when project changes or modal opens
@@ -85,7 +79,7 @@ export default function EditProjectModal({ project, open, onOpenChange }) {
   };
 
   const handleSubmit = (data) => {
-    mutation.mutate(data);
+    mutation.mutate({ projectId: project.id, ...data });
   };
 
   return (
