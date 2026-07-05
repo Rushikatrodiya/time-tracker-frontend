@@ -7,7 +7,7 @@ import {
 import { formatTime } from "../../utils/formatTime";
 import { Clock, ArrowRight, Timer, MoreVertical, Edit } from "lucide-react";
 
-export default function TimeLogRow({ timelog, taskId, onEdit, onDelete, userRole }) {
+export default function TimeLogRow({ timelog, taskId, onEdit, onDelete, userRole, isArchived }) {
   if (timelog.isEmpty) {
     return (
       <tr className="bg-slate-50 border-b border-slate-100">
@@ -46,10 +46,10 @@ export default function TimeLogRow({ timelog, taskId, onEdit, onDelete, userRole
           </div>
 
           {userRole !== 'ADMIN' && (
-            <div className="flex items-center justify-end pr-4">
+            <div className="flex items-center justify-end pr-4" title={isArchived ? "Cannot edit time logs in an archived project" : ""}>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="flex items-center justify-center w-8 h-8 rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
+                <DropdownMenuTrigger asChild disabled={isArchived}>
+                  <button className="flex items-center justify-center w-8 h-8 rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     <MoreVertical className="w-4 h-4" />
                   </button>
                 </DropdownMenuTrigger>

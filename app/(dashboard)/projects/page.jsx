@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FolderKanban, MoreHorizontal, Plus, Users, Pencil, Trash2 } from "lucide-react";
+import { FolderKanban, MoreHorizontal, Plus, Users, Pencil, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import CreateProjectModal from "../../../components/dashboard/CreateProjectModal";
@@ -30,6 +30,8 @@ import {
   getStatusVariant,
 } from "../../../utils/projectHelpers";
 import { useCreateEntity } from "../../../hooks/useCreateEntity";
+
+import { useUpdateProject } from "../../../hooks/useProjects";
 
 export default function ProjectsPage() {
   const user = useAuthStore((state) => state.user);
@@ -51,9 +53,16 @@ export default function ProjectsPage() {
     [["projects"], ["tasks"]],
   );
 
+  const updateMutation = useUpdateProject();
+
   const handleEditProject = (project) => {
     setEditingProject(project);
     setIsEditModalOpen(true);
+  };
+
+  const handleArchiveToggle = (project) => {
+    const newStatus = project.status === "ARCHIVED" ? "ACTIVE" : "ARCHIVED";
+    updateMutation.mutate({ projectId: project.id, status: newStatus });
   };
 
   const handleDeleteProject = (project) => {
@@ -190,6 +199,21 @@ export default function ProjectsPage() {
                             <div className="flex items-center gap-2">
                               <Pencil className="w-4 h-4" />
                               Edit Project
+                            </div>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleArchiveToggle(project)}>
+                            <div className="flex items-center gap-2">
+                              {project.status === "ARCHIVED" ? (
+                                <>
+                                  <ArchiveRestore className="w-4 h-4" />
+                                  Unarchive Project
+                                </>
+                              ) : (
+                                <>
+                                  <Archive className="w-4 h-4" />
+                                  Archive Project
+                                </>
+                              )}
                             </div>
                           </DropdownMenuItem>
                           <DropdownMenuItem>

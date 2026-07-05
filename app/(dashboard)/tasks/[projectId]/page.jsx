@@ -9,21 +9,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import { Search, X, Plus } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Navbar from "../../../../components/dashboard/Navbar";
 import StatCard from "../../../../components/dashboard/StateCard";
 import { DurationDisplay } from "../../../../components/tasks/DurationDisplay";
 import EditTimeLogModal from "../../../../components/tasks/EditTimeLogModal";
 import TaskRow from "../../../../components/tasks/TaskRow";
-import { useTasks } from "../../../../hooks/useTasks";
+import { useTasks, useTaskStats } from "../../../../hooks/useTasks";
 import { useTaskTimers } from "../../../../hooks/useTaskTimers";
 import { useTimeLogActions } from "../../../../hooks/useTimeLogActions";
 import { useTimelogs } from "../../../../hooks/useTimelogs";
 import { useTimerMutations } from "../../../../hooks/useTimerMutations";
 import { useUpdateTask } from "../../../../hooks/useUpdateTask";
 import { useCreateEntity } from "../../../../hooks/useCreateEntity";
+import { useFilteredProjectMembers } from "../../../../hooks/useTeamData";
 import api from "../../../../lib/api";
 import { useAuthStore } from "../../../../store/authStore";
 
@@ -34,7 +43,52 @@ export default function TasksPage() {
   const [deletingTask, setDeletingTask] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  const { tasks: tasksData, isLoading, isError, error } = useTasks(projectId);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [priorityFilter, setPriorityFilter] = useState("ALL");
+  const [assigneeFilter, setAssigneeFilter] = useState("ALL");
+  const [fetchMembers, setFetchMembers] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const hasActiveFilters = debouncedSearch || statusFilter !== "ALL" || priorityFilter !== "ALL" || assigneeFilter !== "ALL";
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("ALL");
+    setPriorityFilter("ALL");
+    setAssigneeFilter("ALL");
+  };
+
+  const { data: projectMembers } = useFilteredProjectMembers(
+    projectId,
+    fetchMembers && (userRole === "ADMIN" || userRole === "MANAGER")
+  );
+
+  const activeFilters = {
+    ...(debouncedSearch && { search: debouncedSearch }),
+    ...(statusFilter !== "ALL" && { status: statusFilter }),
+    ...(priorityFilter !== "ALL" && { priority: priorityFilter }),
+    ...(assigneeFilter !== "ALL" && { assigneeId: assigneeFilter }),
+  };
+
+  const {
+    tasks: tasksData,
+    isLoading,
+    isError,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useTasks(projectId, activeFilters);
+
+  const { data: stats } = useTaskStats(projectId);
 
   const {
     activeTimer,
@@ -46,7 +100,7 @@ export default function TasksPage() {
 
   const deleteMutation = useCreateEntity(
     (taskId) => api.delete(`/tasks/${taskId}`),
-    [["tasks"], ["team", "overview"], ["timelogs"]],
+    [["tasks"], ["team", "overview"], ["timelogs"], ["taskStats"]],
   );
 
   const handleDeleteTask = (task) => {
@@ -106,8 +160,6 @@ export default function TasksPage() {
     refreshTaskTimelogs,
   );
 
-  if (isLoading) return <div>Loading...</div>;
-
   if (isError) {
     return (
       <>
@@ -136,8 +188,13 @@ export default function TasksPage() {
       <div className="flex-1 overflow-y-auto p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-[18px] font-semibold text-slate-900">
+            <h2 className="text-[18px] font-semibold text-slate-900 flex items-center gap-2">
               Tasks Overview
+              {stats?.projectStatus === "ARCHIVED" && (
+                <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200 uppercase tracking-wide">
+                  Archived
+                </span>
+              )}
             </h2>
             <p className="text-[13px] text-slate-400 mt-0.5">
               Manage and track all your tasks
@@ -158,12 +215,21 @@ export default function TasksPage() {
                 />
               </div>
             )}
-            {userRole === "ADMIN" || userRole === "MANAGER" ? (
-              <Link href="/tasks/create">
-                <Button size="sm" className="text-[12px] h-8">
-                  <Plus className="w-3 h-3 mr-1" /> New Task
-                </Button>
-              </Link>
+            {(userRole === "ADMIN" || userRole === "MANAGER") ? (
+              <div 
+                title={stats?.projectStatus === "ARCHIVED" ? "Cannot create tasks in an archived project" : ""}
+                className={stats?.projectStatus === "ARCHIVED" ? "cursor-not-allowed" : ""}
+              >
+                <Link href={stats?.projectStatus === "ARCHIVED" ? "#" : `/tasks/create?projectId=${projectId}`}>
+                  <Button 
+                    size="sm" 
+                    className={`text-[12px] h-8 ${stats?.projectStatus === "ARCHIVED" ? "pointer-events-none" : ""}`} 
+                    disabled={stats?.projectStatus === "ARCHIVED"}
+                  >
+                    <Plus className="w-3 h-3 mr-1" /> New Task
+                  </Button>
+                </Link>
+              </div>
             ) : null}
           </div>
         </div>
@@ -171,21 +237,93 @@ export default function TasksPage() {
         <div className="grid grid-cols-3 gap-3 mb-6">
           <StatCard
             label="Total Tasks"
-            value={tasksData?.length || 0}
-            sub={`${tasksData?.length || 0} tasks`}
+            value={stats?.total || 0}
+            sub={`${stats?.total || 0} tasks`}
           />
           <StatCard
             label="In Progress"
-            value={
-              tasksData?.filter((t) => t.status === "IN_PROGRESS")?.length || 0
-            }
+            value={stats?.inProgress || 0}
             sub="Currently working"
           />
           <StatCard
             label="Completed"
-            value={tasksData?.filter((t) => t.status === "DONE")?.length || 0}
+            value={stats?.completed || 0}
             sub="Finished tasks"
           />
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg mb-6 p-4 flex flex-wrap items-center gap-4">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Search tasks by title..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 h-9 text-[13px]"
+            />
+          </div>
+
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px] h-9 text-[13px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value="TODO">To Do</SelectItem>
+              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+              <SelectItem value="DONE">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <SelectTrigger className="w-[140px] h-9 text-[13px]">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Priorities</SelectItem>
+              <SelectItem value="1">High</SelectItem>
+              <SelectItem value="2">Medium</SelectItem>
+              <SelectItem value="3">Low</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {(userRole === "ADMIN" || userRole === "MANAGER") && (
+            <Select
+              value={assigneeFilter}
+              onValueChange={setAssigneeFilter}
+              onOpenChange={(open) => {
+                if (open) setFetchMembers(true);
+              }}
+            >
+              <SelectTrigger className="w-[160px] h-9 text-[13px]">
+                <SelectValue placeholder="Assignee" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Assignees</SelectItem>
+                {userRole === "MANAGER" && user && (
+                  <SelectItem value={user.id.toString()}>
+                    {user.name} (current user)
+                  </SelectItem>
+                )}
+                {projectMembers?.map((member) => (
+                  <SelectItem key={member.user.id} value={member.user.id.toString()}>
+                    {member.user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+              className="h-9 text-[13px] text-slate-500 hover:text-slate-900 px-2"
+            >
+              <X className="w-4 h-4 mr-1" /> Clear
+            </Button>
+          )}
         </div>
 
         <div className="bg-white border border-slate-200 rounded-lg">
@@ -194,7 +332,12 @@ export default function TasksPage() {
               All Tasks
             </h3>
           </div>
-          {tasksData?.length === 0 ? (
+          {isLoading ? (
+            <div className="p-12 text-center text-slate-500">
+              <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+              <p className="text-[13px] font-medium">Loading tasks...</p>
+            </div>
+          ) : tasksData?.length === 0 ? (
             <div className="p-12 text-center">
               <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center mx-auto mb-3">
                 <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -209,12 +352,20 @@ export default function TasksPage() {
                   <p className="text-[12px] text-slate-400 mb-4">
                     Create your first task to get started tracking time
                   </p>
-                  <Link href="/tasks/create">
-                    <Button size="sm" className="text-[12px] h-8">
-                      <Plus className="w-3 h-3 mr-1" />
-                      Create Task
-                    </Button>
-                  </Link>
+                  <div 
+                    title={stats?.projectStatus === "ARCHIVED" ? "Cannot create tasks in an archived project" : ""}
+                    className={stats?.projectStatus === "ARCHIVED" ? "cursor-not-allowed w-max mx-auto" : ""}
+                  >
+                    <Link href={stats?.projectStatus === "ARCHIVED" ? "#" : `/tasks/create?projectId=${projectId}`}>
+                      <Button 
+                        className={`bg-[#0f172a] hover:bg-[#0f172a]/90 text-white h-10 px-6 ${stats?.projectStatus === "ARCHIVED" ? "pointer-events-none" : ""}`} 
+                        disabled={stats?.projectStatus === "ARCHIVED"}
+                      >
+                        <Plus className="w-3 h-3 mr-1" />
+                        Create Task
+                      </Button>
+                    </Link>
+                  </div>
                 </>
               ) : (
                 <p className="text-[12px] text-slate-400">
@@ -223,56 +374,73 @@ export default function TasksPage() {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    {[
-                      "Title",
-                      "Created By",
-                      ...(userRole === "ADMIN" ? ["Assignee"] : []),
-                      "Status",
-                      "Priority",
-                      "Date",
-                      "Duration",
-                      ...(userRole !== "ADMIN" ? ["Timer"] : []),
-                      "",
-                    ].map((label, i) => (
-                      <th
-                        key={i}
-                        className="text-left p-4 text-[13px] font-semibold text-slate-900"
-                      >
-                        {label}
-                      </th>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      {[
+                        "Title",
+                        "Created By",
+                        ...(userRole === "USER" ? [] : ["Assignee"]),
+                        "Status",
+                        "Priority",
+                        "Date",
+                        "Duration",
+                        ...(userRole !== "ADMIN" ? ["Timer"] : []),
+                        "",
+                      ].map((label, i) => (
+                        <th
+                          key={i}
+                          className="text-left p-4 text-[13px] font-semibold text-slate-900"
+                        >
+                          {label}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tasksData?.map((task) => (
+                      <TaskRow
+                        key={task.id}
+                        task={task}
+                        isArchived={stats?.projectStatus === "ARCHIVED"}
+                        isExpanded={expandedRows.has(task.id)}
+                        subTasks={getSubTasksForTask(task.id)}
+                        durations={durations}
+                        isTimerActive={isTimerActive}
+                        hasActiveTimer={hasActiveTimer}
+                        isPending={isPending}
+                        onToggle={toggleRow}
+                        onStartTimer={handleStartTimer}
+                        onStopTimer={handleStopTimer}
+                        onEditTimeLog={handleEditTimeLog}
+                        onDeleteTimeLog={handleDeleteTimeLog}
+                        onStatusUpdate={handleStatusUpdate}
+                        onPriorityUpdate={handlePriorityUpdate}
+                        onTitleUpdate={handleTitleUpdate}
+                        onDeleteTask={handleDeleteTask}
+                        userRole={userRole}
+                        currentUser={user}
+                      />
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {tasksData?.map((task) => (
-                    <TaskRow
-                      key={task.id}
-                      task={task}
-                      isExpanded={expandedRows.has(task.id)}
-                      subTasks={getSubTasksForTask(task.id)}
-                      durations={durations}
-                      isTimerActive={isTimerActive}
-                      hasActiveTimer={hasActiveTimer}
-                      isPending={isPending}
-                      onToggle={toggleRow}
-                      onStartTimer={handleStartTimer}
-                      onStopTimer={handleStopTimer}
-                      onEditTimeLog={handleEditTimeLog}
-                      onDeleteTimeLog={handleDeleteTimeLog}
-                      onStatusUpdate={handleStatusUpdate}
-                      onPriorityUpdate={handlePriorityUpdate}
-                      onTitleUpdate={handleTitleUpdate}
-                      onDeleteTask={handleDeleteTask}
-                      userRole={userRole}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </tbody>
+                </table>
+              </div>
+
+              {hasNextPage && (
+                <div className="flex justify-center mt-6 mb-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    className="w-full max-w-[200px]"
+                  >
+                    {isFetchingNextPage ? "Loading..." : "Load More Tasks"}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
