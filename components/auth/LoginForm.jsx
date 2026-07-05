@@ -136,33 +136,6 @@ export default function LoginForm() {
           )}
         </Button>
       </form>
-
-      <div className="flex items-center gap-2.5 my-4">
-        <div className="flex-1 h-px bg-slate-200" />
-        <span className="text-[11px] text-slate-300 font-medium">OR</span>
-        <div className="flex-1 h-px bg-slate-200" />
-      </div>
-
-      <button className="w-full h-9 bg-white border border-slate-200 rounded-md text-[13px] font-medium text-slate-600 flex items-center justify-center gap-2 hover:border-slate-300 transition-colors">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-          <rect x="1" y="1" width="5" height="5" rx="1" fill="#4285F4" />
-          <rect x="8" y="1" width="5" height="5" rx="1" fill="#EA4335" />
-          <rect x="1" y="8" width="5" height="5" rx="1" fill="#34A853" />
-          <rect x="8" y="8" width="5" height="5" rx="1" fill="#FBBC05" />
-        </svg>
-        Continue with Google
-      </button>
-
-      <p className="mt-4 text-[11px] text-slate-300 text-center leading-relaxed">
-        By signing in, you agree to our{" "}
-        <Link href="/terms" className="text-slate-400 hover:text-slate-600">
-          Terms of Service
-        </Link>{" "}
-        and{" "}
-        <Link href="/privacy" className="text-slate-400 hover:text-slate-600">
-          Privacy Policy
-        </Link>
-      </p>
     </div>
   );
 }
