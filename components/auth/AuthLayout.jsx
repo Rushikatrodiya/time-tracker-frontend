@@ -1,6 +1,30 @@
 "use client";
-import { Clock } from "lucide-react";
+import { Clock, LayoutDashboard, TimerReset, Users } from "lucide-react";
 import Link from "next/link";
+
+const features = [
+  {
+    icon: LayoutDashboard,
+    title: "Projects & tasks",
+    desc: "Create projects, assign tasks with priority and due dates.",
+  },
+  {
+    icon: TimerReset,
+    title: "Time logs per task",
+    desc: "Start and stop timers on tasks. Duration tracked automatically.",
+  },
+  {
+    icon: Users,
+    title: "Team activity dashboard",
+    desc: "See who's active and hours logged today.",
+  },
+];
+
+const roles = [
+  { name: "Admin", desc: "Full control over users & org" },
+  { name: "Manager", desc: "Manages projects & tasks" },
+  { name: "User", desc: "Logs time on assigned tasks" },
+];
 
 const AuthLayout = ({ children, activeTab }) => {
   return (
@@ -27,54 +51,58 @@ const AuthLayout = ({ children, activeTab }) => {
         </div>
 
         {/* Brand */}
-        <div className="relative space-y-5">
-          <div className="inline-flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/20 rounded px-2 py-1">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-            <span className="text-[10px] font-medium text-blue-400 uppercase tracking-widest">
-              Enterprise Ready
-            </span>
-          </div>
-
+        <div className="relative space-y-4">
           <div className="text-[10px] font-medium text-blue-400 uppercase tracking-widest">
             Project & Time Management
           </div>
 
           <h2 className="text-[2.2rem] font-semibold text-white leading-tight tracking-tight">
-            One platform.
-            <br />
-            <span className="text-blue-400">Every deadline.</span>
+            Track work.<br />
+            <span className="text-blue-400">Ship on time.</span>
           </h2>
 
           <p className="text-[13px] text-white/40 leading-relaxed max-w-[280px] font-light">
-            Manage projects, assign tasks, and track time — all in one place.
-            Built for teams that ship.
+            Manage projects, assign tasks, and log time — all in one place.
           </p>
-        </div>
 
-        {/* Features */}
-        <div className="relative space-y-2.5">
-          {[
-            "Role-based access — Admin, Manager, User",
-            "Real-time timer with automatic duration",
-            "Project & task management in one place",
-            "Secure authentication with refresh tokens",
-          ].map((feature) => (
-            <div key={feature} className="flex items-center gap-2.5">
-              <div className="w-[18px] h-[18px] rounded-full bg-blue-500/20 border border-blue-400/20 flex items-center justify-center flex-shrink-0">
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                  <path
-                    d="M1.5 4L3 5.5L6.5 2"
-                    stroke="#60a5fa"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                  />
-                </svg>
+          {/* Features */}
+          <div className="space-y-2 pt-2">
+            {features.map(({ icon: Icon, title, desc }) => (
+              <div
+                key={title}
+                className="flex items-start gap-3 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3.5 py-3"
+              >
+                <div className="w-[30px] h-[30px] rounded-md bg-blue-500/10 border border-blue-400/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Icon className="w-3.5 h-3.5 text-blue-400" />
+                </div>
+                <div>
+                  <div className="text-[12.5px] font-medium text-white/80 leading-tight">
+                    {title}
+                  </div>
+                  <div className="text-[11.5px] text-white/30 font-light leading-snug mt-0.5">
+                    {desc}
+                  </div>
+                </div>
               </div>
-              <span className="text-[12px] text-white/40 font-light">
-                {feature}
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Roles */}
+          <div className="flex gap-2 pt-1">
+            {roles.map(({ name, desc }) => (
+              <div
+                key={name}
+                className="flex-1 bg-white/[0.03] border border-white/[0.06] rounded-lg px-2.5 py-2.5 text-center"
+              >
+                <div className="text-[11px] font-semibold text-blue-400 tracking-wide">
+                  {name}
+                </div>
+                <div className="text-[10px] text-white/25 font-light leading-snug mt-0.5">
+                  {desc}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="relative text-[11px] text-white/20 font-light">
@@ -85,7 +113,6 @@ const AuthLayout = ({ children, activeTab }) => {
       {/* Right Panel */}
       <div className="flex-1 bg-slate-50 flex items-center justify-center p-8">
         <div className="w-full max-w-[360px]">
-          {/* Mobile Logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Clock className="w-4 h-4 text-white" />
@@ -93,31 +120,27 @@ const AuthLayout = ({ children, activeTab }) => {
             <span className="font-semibold text-slate-800">TimeTracker</span>
           </div>
 
-          {/* Tabs */}
           <div className="flex border-b border-slate-200 mb-6">
             <Link
               href="/login"
-              className={`pb-2 mr-6 text-[13px] font-medium border-b-2 -mb-px transition-colors ${
-                activeTab === "login"
-                  ? "border-blue-600 text-slate-900"
-                  : "border-transparent text-slate-400 hover:text-slate-600"
-              }`}
+              className={`pb-2 mr-6 text-[13px] font-medium border-b-2 -mb-px transition-colors ${activeTab === "login"
+                ? "border-blue-600 text-slate-900"
+                : "border-transparent text-slate-400 hover:text-slate-600"
+                }`}
             >
               Sign in
             </Link>
             <Link
               href="/register"
-              className={`pb-2 text-[13px] font-medium border-b-2 -mb-px transition-colors ${
-                activeTab === "register"
-                  ? "border-blue-600 text-slate-900"
-                  : "border-transparent text-slate-400 hover:text-slate-600"
-              }`}
+              className={`pb-2 text-[13px] font-medium border-b-2 -mb-px transition-colors ${activeTab === "register"
+                ? "border-blue-600 text-slate-900"
+                : "border-transparent text-slate-400 hover:text-slate-600"
+                }`}
             >
               Create account
             </Link>
           </div>
 
-          {/* Form */}
           {children}
         </div>
       </div>

@@ -7,9 +7,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FolderKanban, MoreHorizontal, Plus, Users } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { FolderKanban, MoreHorizontal, Plus, Users, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import CreateProjectModal from "../../../components/dashboard/CreateProjectModal";
+import EditProjectModal from "../../../components/dashboard/EditProjectModal";
 import Navbar from "../../../components/dashboard/Navbar";
 import StatCard from "../../../components/dashboard/StateCard";
 import useQueryHook from "../../../hooks/useQuery";
@@ -19,10 +29,15 @@ import {
   getProjectHealth,
   getStatusVariant,
 } from "../../../utils/projectHelpers";
+import { useCreateEntity } from "../../../hooks/useCreateEntity";
 
 export default function ProjectsPage() {
   const user = useAuthStore((state) => state.user);
   const userRole = user?.role;
+  const [editingProject, setEditingProject] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [deletingProject, setDeletingProject] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const { data: projectsData, isLoading: projectsLoading } = useQueryHook({
     key: ["projects"],
@@ -30,6 +45,31 @@ export default function ProjectsPage() {
     enabled: userRole === "ADMIN" || userRole === "MANAGER",
     select: (res) => res.data.data,
   });
+
+  const deleteMutation = useCreateEntity(
+    (projectId) => api.delete(`/projects/${projectId}`),
+    [["projects"], ["tasks"]],
+  );
+
+  const handleEditProject = (project) => {
+    setEditingProject(project);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteProject = (project) => {
+    setDeletingProject(project);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDeleteProject = () => {
+    if (!deletingProject) return;
+    deleteMutation.mutate(deletingProject.id, {
+      onSuccess: () => {
+        setIsDeleteModalOpen(false);
+        setDeletingProject(null);
+      },
+    });
+  };
 
   if (projectsLoading) {
     return <div>Loading...</div>;
@@ -49,7 +89,7 @@ export default function ProjectsPage() {
               Manage and track all your projects
             </p>
           </div>
-          <CreateProjectModal />
+          {userRole === "ADMIN" && <CreateProjectModal />}
         </div>
 
         {/* Stats Cards */}
@@ -146,6 +186,12 @@ export default function ProjectsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEditProject(project)}>
+                            <div className="flex items-center gap-2">
+                              <Pencil className="w-4 h-4" />
+                              Edit Project
+                            </div>
+                          </DropdownMenuItem>
                           <DropdownMenuItem>
                             <Link
                               href={`/projects/${project.id}/team`}
@@ -155,6 +201,17 @@ export default function ProjectsPage() {
                               Manage Team
                             </Link>
                           </DropdownMenuItem>
+                          {userRole === "ADMIN" && (
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteProject(project)}
+                              className="text-red-600"
+                            >
+                              <div className="flex items-center gap-2">
+                                <Trash2 className="w-4 h-4" />
+                                Delete Project
+                              </div>
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -173,13 +230,60 @@ export default function ProjectsPage() {
               <p className="text-[12px] text-slate-400 mb-4">
                 Create your first project to get started
               </p>
-              <Button size="sm" className="text-[12px] h-8">
-                <Plus className="w-3 h-3 mr-1" />
-                Create Project
-              </Button>
+              {userRole === "ADMIN" && (
+                <Button size="sm" className="text-[12px] h-8">
+                  <Plus className="w-3 h-3 mr-1" />
+                  Create Project
+                </Button>
+              )}
             </div>
           )}
         </div>
+
+        <EditProjectModal
+          project={editingProject}
+          open={isEditModalOpen}
+          onOpenChange={setIsEditModalOpen}
+        />
+
+        <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Delete Project</DialogTitle>
+              <DialogDescription>
+            Once deleted, this project and everything in it will be gone forever. You won't be able to get it back.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-800 font-medium mb-2">
+                Deleting this project will also remove:
+              </p>
+              <ul className="text-sm text-red-700 space-y-1 list-disc list-inside">
+                <li>All tasks inside this project</li>
+                <li>All time logs recorded for those tasks</li>
+                <li>All project settings</li>
+              </ul>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={deleteMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDeleteProject}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? "Deleting..." : "Delete Project"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );

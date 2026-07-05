@@ -13,9 +13,13 @@ export function useUpdateTask() {
 
       return api.patch(`/tasks/${taskId}`, updateData);
     },
-    onSuccess: () => {
-      // Refetch tasks to update the UI
-      queryClient.invalidateQueries(["tasks"]);
+    onSuccess: (data, variables) => {
+      const taskId = variables?.taskId;
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      if (taskId) {
+        queryClient.invalidateQueries({ queryKey: ["tasks", taskId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ["team", "overview"] });
     },
     onError: (error) => {
       console.error("Failed to update task:", error);

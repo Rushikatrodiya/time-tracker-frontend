@@ -24,7 +24,7 @@ export function middleware(request) {
   const { pathname } = request.nextUrl;
 
   const isAuthPage =
-    pathname.startsWith("/login") || pathname.startsWith("/register");
+    pathname.startsWith("/login") || pathname.startsWith("/register") || pathname == "/";
 
   if (!token || isExpired(token)) {
     if (!isAuthPage) {
@@ -39,15 +39,11 @@ export function middleware(request) {
 
   const payload = decodeToken(token);
 
-  if (pathname.startsWith("/my-team")) {
-    if (payload?.role !== "ADMIN" && payload?.role !== "MANAGER") {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-  }
-
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|backend|api).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|backend|api).*)",
+  ],
 };

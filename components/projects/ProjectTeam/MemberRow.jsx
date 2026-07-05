@@ -3,7 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserMinus } from "lucide-react";
 
-export default function MemberRow({ member, onRemove, isRemoving }) {
+export default function MemberRow({ member, onRemove, isRemoving, currentUser }) {
+  const canRemoveMember = (member, currentUser) => {
+    if (!currentUser || !member) return false;
+    if (member.user?.id === currentUser.id) return false;
+    if (currentUser.role === "ADMIN") return true;
+    if (currentUser.role === "MANAGER" && member.user?.role === "USER") return true;
+    return false;
+  };
   return (
     <div className="p-4 hover:bg-slate-50 transition-colors">
       <div className="flex items-center justify-between">
@@ -27,7 +34,7 @@ export default function MemberRow({ member, onRemove, isRemoving }) {
           <Badge variant="outline" className="text-xs">
             {member.user?.role}
           </Badge>
-          {member.user?.role !== "ADMIN" && (
+          {canRemoveMember(member, currentUser) && (
             <Button
               variant="ghost"
               size="sm"

@@ -117,6 +117,7 @@ export default function ProjectTeamPage() {
           isLoading={membersLoading}
           onRemove={handleRemoveMember}
           isRemoving={removeMember.isPending}
+          currentUser={currentUser}
         />
 
         {/* Remove Member Confirmation Modal */}

@@ -63,7 +63,7 @@ export default function EditTimeLogModal({
         </div>
 
         <DialogFooter>
-          <Button onClick={onUpdate}>Update Time</Button>
+          <Button onClick={onUpdate}>Update</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
