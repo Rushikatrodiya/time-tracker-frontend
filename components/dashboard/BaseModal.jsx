@@ -12,6 +12,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useEffect, useState } from "react";
 
 export default function BaseModal({
@@ -60,15 +67,17 @@ export default function BaseModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button size="sm" className="text-[12px] h-8">
-          {props.triggerIcon && (
-            <span className="mr-1">{props.triggerIcon}</span>
-          )}
-          {props.triggerText}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      {!props.hideTrigger && (
+        <DialogTrigger asChild>
+          <Button size="sm" className="text-[12px] h-8">
+            {props.triggerIcon && (
+              <span className="mr-1">{props.triggerIcon}</span>
+            )}
+            {props.triggerText}
+          </Button>
+        </DialogTrigger>
+      )}
+      <DialogContent className="sm:max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{props.title}</DialogTitle>
           <DialogDescription>{props.description}</DialogDescription>
@@ -86,8 +95,26 @@ export default function BaseModal({
                   value={formData[field.id] || ""}
                   rows={3}
                 />
+              ) : field.type === "select" ? (
+                <Select
+                  value={formData[field.id] || ""}
+                  onValueChange={(value) => handleChange(field.id, value)}
+                  required={field.required}
+                >
+                  <SelectTrigger className="text-[13px] w-full">
+                    <SelectValue placeholder={field.placeholder} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {field.options?.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               ) : (
                 <Input
+                  type={field.inputType || "text"}
                   onChange={(e) => handleChange(field.id, e.target.value)}
                   placeholder={field.placeholder}
                   className="text-[13px]"

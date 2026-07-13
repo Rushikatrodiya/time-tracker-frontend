@@ -6,6 +6,7 @@ import useQueryHook from "../../../hooks/useQuery";
 import api from "../../../lib/api";
 import { useAuthStore } from "../../../store/authStore";
 import { formatTime } from "../../../utils/formatTime";
+import { formatCurrency } from "../../../utils/currencyHelpers";
 import { getInitials } from "../../../utils/avatarHelpers";
 
 export default function DashboardPage() {
@@ -16,11 +17,13 @@ export default function DashboardPage() {
     key: ["dashboard"],
     fn: () => api.get("/team/dashboard"),
     select: (res) => res.data.data,
+    gcTime: 0,
+    staleTime: 0,
   });
 
   if (isLoading) return <div>Loading...</div>;
 
-  const isTeam = userRole === "ADMIN" || userRole === "MANAGER";
+  const isTeam = userRole === "ADMIN";
 
   return (
     <>
@@ -37,7 +40,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats */}
-        <div className={`grid gap-3 mb-6 grid-cols-4`}>
+        <div
+          className={`grid gap-3 mb-6 ${!isTeam && dashboard?.stats.myCost == null ? "grid-cols-4" : "grid-cols-5"
+            }`}
+        >
           {isTeam ? (
             <>
               <StatCard
@@ -54,6 +60,11 @@ export default function DashboardPage() {
                 label="Hours This Month"
                 value={formatTime(dashboard?.stats.hoursThisMonth || 0)}
                 sub="combined across team"
+              />
+              <StatCard
+                label="Monthly Cost"
+                value={dashboard?.stats.teamCost != null ? formatCurrency(dashboard.stats.teamCost, dashboard.stats.currency) : "Not Set"}
+                sub={`${dashboard?.stats.ratedUsersCount || 0} of ${dashboard?.stats.totalUsersCount || 0} users rated`}
               />
               <StatCard
                 label="Team Members"
@@ -78,6 +89,13 @@ export default function DashboardPage() {
                 value={formatTime(dashboard?.stats.hoursThisMonth || 0)}
                 sub="my logged hours"
               />
+              {dashboard?.stats.myCost != null && (
+                <StatCard
+                  label="My Earnings"
+                  value={formatCurrency(dashboard.stats.myCost, dashboard.stats.currency)}
+                  sub="this month"
+                />
+              )}
               <StatCard
                 label="My Projects"
                 value={dashboard?.myTasks?.length || 0}
@@ -108,8 +126,17 @@ export default function DashboardPage() {
                           {member.currentTask ?? "No active task"}
                         </p>
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-[12px] text-slate-700">{formatTime(member.hoursToday)}</p>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <div className="text-right">
+                          <p className="text-[12px] font-medium text-slate-700">
+                            {formatTime(member.hoursToday)}
+                          </p>
+                          {member.hourlyRate != null && (
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              {formatCurrency(member.costToday, dashboard?.stats?.currency)}
+                            </p>
+                          )}
+                        </div>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full ${member.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"}`}>
                           {member.isActive ? "Active" : "Offline"}
                         </span>
@@ -135,9 +162,18 @@ export default function DashboardPage() {
                         <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
                         <div>
                           <p className="text-[12px] font-medium text-slate-900">{project.name}</p>
-                          <p className="text-[11px] text-slate-400">{project.taskCount} tasks · {project.memberCount} members</p>
+                          <p className="text-[11px] text-slate-400">
+                            {project.taskCount} {project.taskCount === 1 ? "task" : "tasks"} · {project.memberCount} members
+                          </p>
                         </div>
                       </div>
+                      {project.cost != null && project.cost > 0 && (
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-[12px] font-medium text-slate-900">
+                            {formatCurrency(project.cost, dashboard?.stats?.currency)}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (
