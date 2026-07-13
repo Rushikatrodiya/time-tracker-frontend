@@ -11,6 +11,7 @@ export const useTimeLogActions = (
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedTimeLog, setSelectedTimeLog] = useState(null);
   const [editingTimeLog, setEditingTimeLog] = useState({});
+  const [updateError, setUpdateError] = useState(null);
 
   const updateTimeLogMutation = useCreateEntity(
     (data) =>
@@ -35,6 +36,7 @@ export const useTimeLogActions = (
       endTime: parseToLocalInput(timeLog.originalEndTime),
       description: timeLog.description || taskTitle || "",
     });
+    setUpdateError(null);
     setEditModalOpen(true);
   };
 
@@ -50,11 +52,16 @@ export const useTimeLogActions = (
       { ...payload, timeLogId: selectedTimeLog.id },
       {
         onSuccess: () => {
+          setUpdateError(null);
           setEditModalOpen(false);
           setSelectedTimeLog(null);
           setEditingTimeLog({});
           refetchDurations();
           refreshTaskTimelogs(selectedTimeLog.taskId);
+        },
+        onError: (err) => {
+          const message = err?.response?.data?.message || "Failed to update time log. Please try again.";
+          setUpdateError(message);
         },
       },
     );
@@ -84,5 +91,6 @@ export const useTimeLogActions = (
     handleUpdateTimeLog,
     handleDeleteTimeLog,
     handleFieldChange,
+    updateError,
   };
 };

@@ -17,20 +17,40 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Send, Trash2 } from "lucide-react";
+import { Send, Trash2, Edit2 } from "lucide-react";
 import { useState } from "react";
 import Navbar from "../../../components/dashboard/Navbar";
+import BaseModal from "../../../components/dashboard/BaseModal";
 import { useCreateEntity } from "../../../hooks/useCreateEntity";
 import { useInvitationForm } from "../../../hooks/useInvitationForm";
+import { useUpdateUser } from "../../../hooks/useUpdateUser";
 import useQueryHook from "../../../hooks/useQuery";
+import { formatCurrency } from "../../../utils/currencyHelpers";
 import api from "../../../lib/api";
 import { useAuthStore } from "../../../store/authStore";
 
 export default function UsersPage() {
   const [invitationToRevoke, setInvitationToRevoke] = useState(null);
   const [userToRemove, setUserToRemove] = useState(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState(null);
 
   const currentUser = useAuthStore((state) => state.user);
+
+  const updateUserMutation = useUpdateUser(() => {
+    setEditModalOpen(false);
+    setUserToEdit(null);
+  });
+
+  const handleEditUser = (user) => {
+    setUserToEdit({
+      id: user.id,
+      hourlyRate: user.hourlyRate || "",
+      currency: user.currency || "USD",
+      role: user.role || "USER",
+    });
+    setEditModalOpen(true);
+  };
 
   const mutation = useCreateEntity(
     (data) => api.post("/invitations", data),
@@ -53,11 +73,23 @@ export default function UsersPage() {
     select: (res) => res.data.data || res.data,
   });
 
-  const { data: usersData, isLoading: isLoadingUsers } = useQueryHook({
+  const { data: orgData, isLoading: isLoadingUsers } = useQueryHook({
     key: ["users"],
     fn: () => api.get("/users"),
     select: (res) => res.data.data || res.data,
   });
+
+  const usersData = orgData?.users || [];
+  const orgCurrency = orgData?.currency || "USD";
+
+  const updateCurrencyMutation = useCreateEntity(
+    (currency) => api.patch(`users/${currentUser.organizationId}/organization`, { currency }),
+    [["users"]]
+  );
+
+  const handleCurrencyChange = (currency) => {
+    updateCurrencyMutation.mutate(currency);
+  };
 
   const { form, errors, handleChange, handleSubmit, reset } = useInvitationForm({
     onSubmit: (data) => {
@@ -200,19 +232,35 @@ export default function UsersPage() {
 
         {/* Active Users Table */}
         <div className="bg-white border border-slate-200 rounded-lg mt-6">
-          <div className="p-4 border-b border-slate-200">
+          <div className="p-4 border-b border-slate-200 flex justify-between items-center">
             <h3 className="text-[13px] font-semibold text-slate-900">
               Active Users
             </h3>
+            {currentUser?.role === "ADMIN" && (
+              <div className="flex items-center gap-2">
+                <span className="text-[12px] font-medium text-slate-700">Organization Currency:</span>
+                <Select value={orgCurrency} onValueChange={handleCurrencyChange} disabled={updateCurrencyMutation.isPending}>
+                  <SelectTrigger className="w-[120px] h-8 text-[12px]">
+                    <SelectValue placeholder="Currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                    <SelectItem value="GBP">GBP (£)</SelectItem>
+                    <SelectItem value="INR">INR (₹)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200">
-                  {["Name", "Email", "Role", "Joined At", "Actions"].map((label) => (
+                  {["Name", "Email", "Role", "Hourly Rate", "Joined At", "Actions"].map((label) => (
                     <th
                       key={label}
-                      className="text-left p-4 text-[13px] font-semibold text-slate-900"
+                      className=" p-4 text-[13px] font-semibold text-slate-900"
                     >
                       {label}
                     </th>
@@ -222,46 +270,61 @@ export default function UsersPage() {
               <tbody>
                 {isLoadingUsers ? (
                   <tr>
-                    <td colSpan={5} className="p-4 text-center text-[13px] text-slate-400">
+                    <td colSpan={6} className="p-4 text-center text-[13px] text-slate-400">
                       Loading users...
                     </td>
                   </tr>
                 ) : usersData?.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-4 text-center text-[13px] text-slate-400">
+                    <td colSpan={6} className="p-4 text-center text-[13px] text-slate-400">
                       No active users found
                     </td>
                   </tr>
                 ) : (
                   usersData?.map((userItem) => (
                     <tr key={userItem.id} className="border-b border-slate-100">
-                      <td className="p-4 text-[13px] text-slate-700">
+                      <td className="text-center p-4 text-[13px] text-slate-700">
                         {userItem.name}
                       </td>
-                      <td className="p-4 text-[13px] text-slate-700">
+                      <td className="text-center p-4 text-[13px] text-slate-700">
                         {userItem.email}
                       </td>
-                      <td className="p-4 text-[13px] text-slate-700">
+                      <td className="text-center p-4 text-[13px] text-slate-700">
                         {userItem.role}
                       </td>
-                      <td className="p-4 text-[13px] text-slate-700">
+                      <td className="text-center p-4 text-[13px] text-slate-700">
+                        {formatCurrency(userItem.hourlyRate, orgCurrency)}
+                      </td>
+                      <td className="text-center p-4 text-[13px] text-slate-700">
                         {new Date(userItem.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="p-4 text-[13px] text-slate-700">
+                      <td className="text-center p-4 text-[13px] text-slate-700">
                         {String(currentUser?.id) !== String(userItem.id) && userItem.role !== "ADMIN" ? (
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            className="h-7 text-[12px]"
-                            onClick={() => handleRemoveUser(userItem)}
-                            disabled={removeUserMutation.isPending}
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            {removeUserMutation.isPending && userToRemove?.id === userItem.id
-                              ? "Removing..."
-                              : "Remove"}
-                          </Button>
+                          <div className="justify-center flex gap-4">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-[12px]"
+                              onClick={() => handleEditUser(userItem)}
+                            >
+                              <Edit2 className="w-3 h-3 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="h-7 text-[12px]"
+                              onClick={() => handleRemoveUser(userItem)}
+                              disabled={removeUserMutation.isPending}
+                            >
+                              <Trash2 className="w-3 h-3 mr-1" />
+                              {removeUserMutation.isPending && userToRemove?.id === userItem.id
+                                ? "Removing..."
+                                : "Remove"}
+                            </Button>
+                          </div>
                         ) : (
                           <span className="text-slate-400">-</span>
                         )}
@@ -287,7 +350,7 @@ export default function UsersPage() {
                   {["Email", "Role", "Status", "Expires At", "Actions"].map((label) => (
                     <th
                       key={label}
-                      className="text-left p-4 text-[13px] font-semibold text-slate-900"
+                      className=" p-4 text-[13px] font-semibold text-slate-900"
                     >
                       {label}
                     </th>
@@ -317,19 +380,19 @@ export default function UsersPage() {
 
                     return (
                       <tr key={invitation.id} className="border-b border-slate-100">
-                        <td className="p-4 text-[13px] text-slate-700">
+                        <td className="text-center p-4 text-[13px] text-slate-700">
                           {invitation.email}
                         </td>
-                        <td className="p-4 text-[13px] text-slate-700">
+                        <td className="text-center p-4 text-[13px] text-slate-700">
                           {invitation.role}
                         </td>
-                        <td className="p-4 text-[13px] text-slate-700">
+                        <td className="text-center p-4 text-[13px] text-slate-700">
                           {status}
                         </td>
-                        <td className="p-4 text-[13px] text-slate-700">
+                        <td className="text-center p-4 text-[13px] text-slate-700">
                           {new Date(invitation.expiresAt).toLocaleDateString()}
                         </td>
-                        <td className="p-4 text-[13px] text-slate-700">
+                        <td className="text-center p-4 text-[13px] text-slate-700">
                           {canRevoke ? (
                             <Button
                               type="button"
@@ -356,7 +419,7 @@ export default function UsersPage() {
         </div>
 
         <Dialog open={!!invitationToRevoke} onOpenChange={(open) => !open && cancelRevokeInvitation()}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
             <DialogHeader>
               <DialogTitle>Revoke Invitation</DialogTitle>
               <DialogDescription>
@@ -397,7 +460,7 @@ export default function UsersPage() {
 
         {/* Remove User Modal */}
         <Dialog open={!!userToRemove} onOpenChange={(open) => !open && cancelRemoveUser()}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
             <DialogHeader>
               <DialogTitle>Remove User</DialogTitle>
               <DialogDescription>
@@ -433,6 +496,44 @@ export default function UsersPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Edit User Modal */}
+        <BaseModal
+          hideTrigger={true}
+          title="Edit User Settings"
+          description="Update user's hourly rate, currency, and role."
+          open={editModalOpen}
+          onOpenChange={setEditModalOpen}
+          fields={[
+            {
+              id: "hourlyRate",
+              label: "Hourly Rate",
+              placeholder: "e.g. 45.5",
+              inputType: "number",
+            },
+            {
+              id: "role",
+              label: "Role",
+              placeholder: "Select role",
+              type: "select",
+              options: [
+                { label: "User", value: "USER" },
+                { label: "Manager", value: "MANAGER" },
+                { label: "Admin", value: "ADMIN" },
+              ],
+            },
+          ]}
+          initialData={userToEdit}
+          onSubmit={(data) => {
+            const rate = data.hourlyRate ? parseFloat(data.hourlyRate) : null;
+            updateUserMutation.mutate({
+              id: userToEdit?.id,
+              hourlyRate: rate,
+              role: data.role,
+            });
+          }}
+          submitText={updateUserMutation.isPending ? "Updating..." : "Update User"}
+        />
       </div>
     </>
   );

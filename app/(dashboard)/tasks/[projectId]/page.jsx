@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, X, Plus } from "lucide-react";
+import { Search, X, Plus, Info } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
@@ -154,6 +154,7 @@ export default function TasksPage() {
     handleUpdateTimeLog,
     handleDeleteTimeLog,
     handleFieldChange,
+    updateError,
   } = useTimeLogActions(
     invalidateTaskTimelogs,
     refetchDurations,
@@ -185,6 +186,14 @@ export default function TasksPage() {
   return (
     <>
       <Navbar title="Tasks" />
+      {(userRole === "USER" || userRole === "MANAGER") && (
+        <div className="flex items-start gap-2.5 p-3 m-6  mb-0 rounded-lg bg-blue-50 border border-blue-100">
+          <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+          <p className="text-[12px] text-blue-700 leading-relaxed">
+            <span className="font-semibold">Heads up!</span> You can only log time for one task at a time. If your new entry overlaps with an existing one, you'll need to adjust the times before saving.
+          </p>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -216,14 +225,14 @@ export default function TasksPage() {
               </div>
             )}
             {(userRole === "ADMIN" || userRole === "MANAGER") ? (
-              <div 
+              <div
                 title={stats?.projectStatus === "ARCHIVED" ? "Cannot create tasks in an archived project" : ""}
                 className={stats?.projectStatus === "ARCHIVED" ? "cursor-not-allowed" : ""}
               >
                 <Link href={stats?.projectStatus === "ARCHIVED" ? "#" : `/tasks/create?projectId=${projectId}`}>
-                  <Button 
-                    size="sm" 
-                    className={`text-[12px] h-8 ${stats?.projectStatus === "ARCHIVED" ? "pointer-events-none" : ""}`} 
+                  <Button
+                    size="sm"
+                    className={`text-[12px] h-8 ${stats?.projectStatus === "ARCHIVED" ? "pointer-events-none" : ""}`}
                     disabled={stats?.projectStatus === "ARCHIVED"}
                   >
                     <Plus className="w-3 h-3 mr-1" /> New Task
@@ -352,13 +361,13 @@ export default function TasksPage() {
                   <p className="text-[12px] text-slate-400 mb-4">
                     Create your first task to get started tracking time
                   </p>
-                  <div 
+                  <div
                     title={stats?.projectStatus === "ARCHIVED" ? "Cannot create tasks in an archived project" : ""}
                     className={stats?.projectStatus === "ARCHIVED" ? "cursor-not-allowed w-max mx-auto" : ""}
                   >
                     <Link href={stats?.projectStatus === "ARCHIVED" ? "#" : `/tasks/create?projectId=${projectId}`}>
-                      <Button 
-                        className={`bg-[#0f172a] hover:bg-[#0f172a]/90 text-white h-10 px-6 ${stats?.projectStatus === "ARCHIVED" ? "pointer-events-none" : ""}`} 
+                      <Button
+                        className={`bg-[#0f172a] hover:bg-[#0f172a]/90 text-white h-10 px-6 ${stats?.projectStatus === "ARCHIVED" ? "pointer-events-none" : ""}`}
                         disabled={stats?.projectStatus === "ARCHIVED"}
                       >
                         <Plus className="w-3 h-3 mr-1" />
@@ -451,6 +460,7 @@ export default function TasksPage() {
         editingTimeLog={editingTimeLog}
         onFieldChange={handleFieldChange}
         onUpdate={handleUpdateTimeLog}
+        error={updateError}
       />
 
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
